@@ -1,50 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthContext } from '../context/ContextProvider';
+import { apiFetch } from "..api.js";  // I'll explain this helper below
 
 const Home = ({ searchTerm }) => {
-  const [notes, setNotes] = useState(() => {
-    const saved = localStorage.getItem('notes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { token } = useContext(AuthContext);
 
+  const [notes, setNotes] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [editingId, setEditingId] = useState(null);
 
+  // Fetch notes from backend on mount or token change
   useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
+    if (!token) return;
 
-  const handleAddNote = () => {
+    const fetchNotes = async () => {
+      try {
+        const data = await apiFetch('/api/notes', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setNotes(data.notes);
+      } catch (error) {
+        toast.error('Failed to load notes: ' + error.message);
+      }
+    };
+
+    fetchNotes();
+  }, [token]);
+
+  // Add or edit note
+  const handleAddNote = async () => {
     if (!title.trim() && !description.trim()) return;
 
     if (editingId) {
-      setNotes((prev) =>
-        prev.map((note) =>
-          note.id === editingId ? { ...note, title, description } : note
-        )
-      );
+      // Edit note
+      try {
+        const updatedNote = await apiFetch(`/api/notes/${editingId}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+        });
 
-      toast.success("Changes saved successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+        setNotes((prev) =>
+          prev.map((note) => (note.id === editingId ? updatedNote : note))
+        );
 
-      setEditingId(null);
+        toast.success('Changes saved successfully!', { autoClose: 3000 });
+        setEditingId(null);
+      } catch (error) {
+        toast.error('Failed to update note: ' + error.message);
+      }
     } else {
-      const newNote = {
-        id: Date.now(),
-        title: title.trim(),
-        description: description.trim(),
-      };
-      setNotes((prev) => [newNote, ...prev]);
+      // Add new note
+      try {
+        const newNote = await apiFetch('/api/notes', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+        });
 
-      toast.success("Note added successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+        setNotes((prev) => [newNote, ...prev]);
+
+        toast.success('Note added successfully!', { autoClose: 3000 });
+      } catch (error) {
+        toast.error('Failed to add note: ' + error.message);
+      }
     }
 
     setTitle('');
@@ -52,19 +76,25 @@ const Home = ({ searchTerm }) => {
     setShowForm(false);
   };
 
-  const handleDelete = (id) => {
-    setNotes((prev) => prev.filter((note) => note.id !== id));
+  // Delete note
+  const handleDelete = async (id) => {
+    try {
+      await apiFetch(`/api/notes/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    toast.success("Note deleted successfully!", {
-      position: "top-right",
-      autoClose: 3000,
-    });
+      setNotes((prev) => prev.filter((note) => note.id !== id));
+      toast.success('Note deleted successfully!', { autoClose: 3000 });
 
-    if (editingId === id) {
-      setEditingId(null);
-      setTitle('');
-      setDescription('');
-      setShowForm(false);
+      if (editingId === id) {
+        setEditingId(null);
+        setTitle('');
+        setDescription('');
+        setShowForm(false);
+      }
+    } catch (error) {
+      toast.error('Failed to delete note: ' + error.message);
     }
   };
 
@@ -82,9 +112,10 @@ const Home = ({ searchTerm }) => {
     setShowForm(false);
   };
 
-  const filteredNotes = notes.filter(note =>
-    note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    note.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredNotes = notes.filter(
+    (note) =>
+      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -106,16 +137,10 @@ const Home = ({ searchTerm }) => {
             </p>
 
             <div className="flex justify-between mt-3">
-              <button
-                onClick={() => handleEdit(note)}
-                className="text-blue-600 hover:underline"
-              >
+              <button onClick={() => handleEdit(note)} className="text-blue-600 hover:underline">
                 Edit
               </button>
-              <button
-                onClick={() => handleDelete(note.id)}
-                className="text-red-600 hover:underline"
-              >
+              <button onClick={() => handleDelete(note.id)} className="text-red-600 hover:underline">
                 Delete
               </button>
             </div>
@@ -167,7 +192,7 @@ const Home = ({ searchTerm }) => {
       <button
         onClick={() => setShowForm((prev) => !prev)}
         className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full w-14 h-14 text-4xl font-bold flex items-center justify-center shadow-lg hover:bg-blue-700 transition z-50"
-        title={showForm ? "Close form" : "Add new note"}
+        title={showForm ? 'Close form' : 'Add new note'}
       >
         +
       </button>

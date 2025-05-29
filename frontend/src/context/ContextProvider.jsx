@@ -1,6 +1,6 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from "react";
+import { apiFetch } from "..api.js";
 
-// ✅ Use PascalCase for exported context name
 export const AuthContext = createContext();
 
 const ContextProvider = ({ children }) => {
@@ -16,11 +16,34 @@ const ContextProvider = ({ children }) => {
     }
   }, [token]);
 
-  const login = (token, username) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("username", username);
-    setToken(token);
-    setUser(username);
+  const login = async (email, password) => {
+    try {
+      const data = await apiFetch("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username);
+      setToken(data.token);
+      setUser(data.username);
+      return { success: true };
+    } catch (error) {
+      console.error("Login failed:", error.message);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const register = async (username, email, password) => {
+    try {
+      const data = await apiFetch("/api/register", {
+        method: "POST",
+        body: JSON.stringify({ username, email, password }),
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Registration failed:", error.message);
+      return { success: false, message: error.message };
+    }
   };
 
   const logout = () => {
@@ -31,7 +54,9 @@ const ContextProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, isLoggedIn: !!token, login, logout }}>
+    <AuthContext.Provider
+      value={{ token, user, isLoggedIn: !!token, login, logout, register }}
+    >
       {children}
     </AuthContext.Provider>
   );

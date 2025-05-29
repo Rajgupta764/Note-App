@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/ContextProvider'; // ✅ Import context
+import { AuthContext } from '../context/ContextProvider';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -9,13 +9,16 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext); // ✅ Use login function
+  const { login } = useContext(AuthContext);
+
+  // Use env variable for API base URL with fallback
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         name,
         email,
         password,
@@ -23,9 +26,9 @@ const Signup = () => {
 
       if (response.data.success) {
         const token = response.data.token;
-        const username = response.data.username || name;
+        // Fix: sometimes user object, so fallback to name state if not present
+        const username = response.data.user?.name || name;
 
-        // ✅ Auto-login using context
         login(token, username);
         navigate('/');
       }

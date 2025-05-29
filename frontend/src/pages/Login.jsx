@@ -7,12 +7,15 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const { login, token } = useContext(AuthContext); // include token
+  const { login, token } = useContext(AuthContext);
+
+  // Use environment variable for API base URL with fallback to localhost
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password,
       });
@@ -21,8 +24,7 @@ const Login = () => {
         const token = response.data.token;
         const name = response.data.user?.name || email;
 
-        login(token, name); // update context
-        // No need to navigate here — redirect will happen in useEffect
+        login(token, name);
       }
 
       setEmail('');
@@ -33,7 +35,6 @@ const Login = () => {
     }
   };
 
-  // 🔁 Redirect to home page after successful login
   useEffect(() => {
     if (token) {
       navigate('/');
