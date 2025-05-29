@@ -5,6 +5,7 @@ import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import { AuthContext } from './context/ContextProvider';
+import {ToastContainer} from 'react-toastify';
 
 const App = () => {
   const { user, isLoggedIn, logout } = useContext(AuthContext);
@@ -29,6 +30,7 @@ const App = () => {
         <Route path="/register" element={<Signup />} />
         <Route path="/login" element={<Login />} />
       </Routes>
+      <ToastContainer/>
     </Router>
   );
 };

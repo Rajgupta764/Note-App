@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Home = ({ searchTerm }) => {
   const [notes, setNotes] = useState(() => {
@@ -24,6 +26,12 @@ const Home = ({ searchTerm }) => {
           note.id === editingId ? { ...note, title, description } : note
         )
       );
+
+      toast.success("Changes saved successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+
       setEditingId(null);
     } else {
       const newNote = {
@@ -32,6 +40,11 @@ const Home = ({ searchTerm }) => {
         description: description.trim(),
       };
       setNotes((prev) => [newNote, ...prev]);
+
+      toast.success("Note added successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
 
     setTitle('');
@@ -41,6 +54,12 @@ const Home = ({ searchTerm }) => {
 
   const handleDelete = (id) => {
     setNotes((prev) => prev.filter((note) => note.id !== id));
+
+    toast.success("Note deleted successfully!", {
+      position: "top-right",
+      autoClose: 3000,
+    });
+
     if (editingId === id) {
       setEditingId(null);
       setTitle('');
@@ -63,7 +82,6 @@ const Home = ({ searchTerm }) => {
     setShowForm(false);
   };
 
-  // ✅ Filter notes based on searchTerm
   const filteredNotes = notes.filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.description.toLowerCase().includes(searchTerm.toLowerCase())
